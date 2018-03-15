@@ -19,6 +19,8 @@ use File::Basename;
 # 1.5 .. wiggle file counts, when floating points, are now rounded to three decimal places. Save space in final file.
 #        This means that, in -m mode, the lowest reported value will be 0.001 reads per million.
 
+# 1.51 .. add multithreading support for samtools
+
 my $version = "1.5"; 
 my $usage = "bam2wig
 Version $version
@@ -39,12 +41,14 @@ OPTIONS:
 -c [chr:start-stop] : Limit analysis to the indicated locus. 
 -g [string] : Path to a GFF3 file. Loci in the GFF3 will be reported. Negates any setting of -c.
 -F [integer] : Argument to be passed to samtools view's -F option ... which alignments will be ignored. Defaults to 3844
+-p [integer] : Number of threads. Defaults to 1
 -m : Normalize reads to reads per million before calculating depths
 -d : Treat as degradome\/PARE data .. tally only the depths of 5' ends. Option -s must be either \'bottom\' or \'top\'
 -D : Name of output directory. Defaults to [/YourBamsPath/YourBamsBasename_bam2wig/].
 -i : Instead of abundance, instead report fraction of reads meeting the size requirements given by -l and/or -L
 -h : Get help \(print this message\)
 -v : Print version number and quit
+
 
 DOCUMENTATION:
 type \'perldoc bam2wig\'
@@ -58,12 +62,13 @@ unless($ARGV[0]) {
 
 ########### Options
 
-our($opt_t,$opt_s,$opt_r,$opt_l,$opt_L,$opt_c,$opt_g,$opt_h,$opt_v,$opt_d,$opt_D,$opt_m,$opt_F,$opt_i);
+our($opt_t,$opt_s,$opt_r,$opt_l,$opt_L,$opt_c,$opt_g,$opt_h,$opt_v,$opt_d,$opt_D,$opt_m,$opt_F,$opt_i,$opt_p);
 $opt_t = 0; ## default
 $opt_s = "both"; ## default
 $opt_F = 3844;  ## default .. sum of 4 (unmapped reads), 256 (secondary alignments), 512 (failed QC), 1024 (Duplicate), 2048 (supplementary)
+$opt_p = 1; ## deatault 1 thread
 
-getopts('mdhvit:s:r:l:L:c:g:D:F:');
+getopts('mdhvit:s:r:l:L:c:g:D:F:p:');
 
 if($opt_h) {
     die "$usage";
@@ -351,7 +356,7 @@ if($opt_m) {
 
 (open(DEPTH, ">$depthfile")) || die "failed to open depth file $depthfile for writing\n";
 
-my $view_call = "samtools view";
+my $view_call = "samtools view -p $opt_p";
 # strand
 if($opt_s eq "top") {
 	$opt_F += 16;  
