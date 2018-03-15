@@ -21,7 +21,7 @@ use File::Basename;
 
 # 1.51 .. add multithreading support for samtools
 
-my $version = "1.5"; 
+my $version = "1.51"; 
 my $usage = "bam2wig
 Version $version
 
